@@ -1,103 +1,78 @@
 import React, {Component} from 'react';
-import './PersonDetails.css';
-import SwapiService from "../../services/SwapiServices";
-import Spinner from "../Spinner/Spinner";
-import ErrorIndicator from "../ErrorIndicator/ErrorIndicator";
+import './ItemDetails.css';
 import ErrorButton from "../ErrorButton/ErrorButton";
 
-export default class PersonDetails extends Component {
+const Record = ({data, field, label}) => {
+  return (
+    <li className="list-group-item">
+      <span className="term">{label}</span>
+      <span>{data[field]}</span>
+    </li>
+  )
+}
 
-  swapiService = new SwapiService();
+export { Record }
+
+export default class ItemDetails extends Component {
 
   state = {
-    person: null,
-    loading: true,
-    error: false
+    data: null,
+    image: null,
   }
 
   componentDidMount() {
-    this.updatePerson();
+    this.updateItem();
   }
 
   componentDidUpdate(prevProps) {
-    if (this.props.personId !== prevProps.personId) {
-      this.updatePerson();
+    if (this.props.itemId !== prevProps.itemId ||
+        this.props.getData !== prevProps.getData ||
+        this.props.getImageUrl !== prevProps.getImageUrl ) {
+      this.updateItem();
     }
   }
 
-  onLoadedPerson = (person) => {
-    this.setState({
-      person,
-      loading: false
-    });
-  }
+  updateItem = () => {
+    const { itemId, getData,
+            getImageUrl} = this.props;
 
-  onError = () => {
-    this.setState({
-      error: true,
-      loading: false
-    });
-  }
+    if (!itemId) return;
 
-  updatePerson = () => {
-    const { personId } = this.props;
-    if (!personId) return;
-
-    this.swapiService
-      .getPerson(personId)
-      .then(this.onLoadedPerson)
-      .catch(this.onError);
+    getData(this.props.itemId)
+      .then((data) => {
+        this.setState({
+          data,
+          image: getImageUrl(data),
+        });
+      });
   }
 
   render() {
+    const { data, image } = this.state;
 
-    const { loading, error, person } = this.state;
-
-    if (!person) {
+    if (!data) {
       return <span>Select any items from a list!</span>;
     }
 
-    const spinner = loading ? <Spinner /> : null;
-    const errorIndicator = error ? <ErrorIndicator /> : null;
-    const content = !(loading || error) ? <PersonView person={person} /> : null ;
-
     return (
-      <div className="person-details card">
-        {spinner}
-        {errorIndicator}
-        {content}
+      <div className="item-details card">
+        <img className="item-image"
+             src={image} />
+
+        <div className="card-body">
+          <h4>{data.name}</h4>
+          <ul className="list-group list-group-flush">
+            {
+              React.Children.map(this.props.children, (child) => {
+                return React.cloneElement(child, { data });
+              })
+            }
+          </ul>
+          <ErrorButton />
+        </div>
       </div>
     );
   }
 }
 
-const PersonView = ({person}) => {
-  const { id, name, gender,
-    eyeColor, birthYear} = person;
 
-  return (
-    <React.Fragment>
-      <img className="person-image"
-           src={`https://starwars-visualguide.com/assets/img/characters/${id}.jpg`} />
-
-      <div className="card-body">
-        <h4>{name}</h4>
-        <ul className="list-group list-group-flush">
-          <li className="list-group-item">
-            <span className="term">Gender</span>
-            <span>{gender}</span>
-          </li>
-          <li className="list-group-item">
-            <span className="term">Birth Year</span>
-            <span>{birthYear}</span>
-          </li>
-          <li className="list-group-item">
-            <span className="term">Eye Color</span>
-            <span>{eyeColor}</span>
-          </li>
-        </ul>
-        <ErrorButton />
-      </div>
-    </React.Fragment>
-  );
-}

@@ -1,29 +1,51 @@
 import React, {Component} from "react";
 import Spinner from "../Spinner/Spinner";
-import SwapiService from "../../services/SwapiServices";
+import ErrorIndicator from "../ErrorIndicator/ErrorIndicator";
 
-const withListData = (View, getData) => {
+
+const withListData = (View) => {
   return class extends Component {
 
     state = {
-      data: null
+      data: null,
+      loading: true,
+      error: false
     }
 
     componentDidMount() {
+      this.update();
+    }
 
-      getData()
+    componentDidUpdate(prevProps) {
+      if (this.props.getData !== prevProps.getData) {
+        this.update();
+      }
+    }
+
+    update = () => {
+      this.props.getData()
         .then((data) => {
           this.setState({
-            data
+            data,
+            loading: false
           });
+        })
+        .catch(() => {
+          this.setState({
+            error: true,
+            loading: false
+          })
         });
     }
 
     render() {
-      const { data } = this.state;
+      const { data, loading, error } = this.state;
 
-      if (!data) {
+      if (loading) {
         return <Spinner />;
+      }
+      if (error) {
+        return <ErrorIndicator />
       }
 
       return <View {...this.props} data={data}/>
@@ -31,47 +53,4 @@ const withListData = (View, getData) => {
   }
 }
 
-
-const withDetailsData = (View, getData, getImageUrl) => {
-
-  return class extends Component {
-
-    state = {
-      data: null,
-      image: null,
-    }
-
-    componentDidMount() {
-      this.updateItem();
-    }
-
-    componentDidUpdate(prevProps) {
-      if (this.props.itemId !== prevProps.itemId) {
-        this.updateItem();
-      }
-    }
-
-    updateItem = () => {
-      if (!this.props.itemId) return;
-
-      getData(this.props.itemId)
-        .then((data) => {
-          this.setState({
-            data,
-            image: getImageUrl(data),
-          });
-        });
-    }
-
-    render() {
-      const { data, image } = this.state;
-
-      if (!data) {
-        return <span>Select any items from a list!</span>;
-      }
-
-      return <View {...this.props} data={data} image={image}/>
-    }
-  }
-}
-export { withDetailsData, withListData };
+export default withListData;
